@@ -1,0 +1,92 @@
+<!-- ============================================================
+     base.html - Master Base Template for MedCheck
+     ============================================================
+     All pages extend this template. Provides:
+     - HTML head with meta tags, CSS, and Font Awesome icons
+     - Header bar with MedCheck logo and health center name
+     - Flash message display area
+     - Content block for page-specific content
+     
+     Blocks available for child templates:
+       block "title"       - Page title
+       block "body_class"  - CSS class for body (e.g., 'login-page')
+       block "header"      - Override to hide/customize header
+       block "content"     - Main page content
+     ============================================================ -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MedCheck{% endblock %}</title>
+
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+
+    <!-- Font Awesome Icons (CDN) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body class="{% block body_class %}{% endblock %}">
+
+    <!-- ============================== -->
+    <!-- HEADER BAR                     -->
+    <!-- Shows MedCheck logo + name     -->
+    <!-- Override block to hide header  -->
+    <!-- (e.g., on login page)          -->
+    <!-- ============================== -->
+    {% block header %}
+    <header class="header-bar">
+        <div class="header-left">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MedCheck Logo" class="header-logo">
+            <span class="header-title">MedCheck</span>
+        </div>
+        <div class="header-right">
+            <span class="header-subtitle">Montalban Health Center</span>
+            <!-- Logout Button (only visible when logged in) -->
+            {% if session.get('logged_in') %}
+            <div class="header-divider"></div>
+            <div class="header-user">
+                <i class="fas fa-user-circle"></i>
+                <span class="header-username">{{ session.get('username', 'Admin') }}</span>
+                <!-- Role badge so users always know their access level -->
+                {% set role = session.get('role', '') %}
+                {% if role == 'SUPERADMIN' %}
+                    <span class="role-badge superadmin">Super Admin</span>
+                {% elif role == 'ADMIN' %}
+                    <span class="role-badge admin">Admin</span>
+                {% elif role == 'INVENTORY_STAFF' %}
+                    <span class="role-badge staff">Staff</span>
+                {% endif %}
+                <a href="{{ url_for('auth.logout') }}" class="logout-btn" title="Log Out">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </header>
+    {% endblock %}
+
+    <!-- ============================== -->
+    <!-- FLASH MESSAGES                 -->
+    <!-- Success/error notifications    -->
+    <!-- ============================== -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-messages">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- ============================== -->
+    <!-- MAIN CONTENT                   -->
+    <!-- Each page fills this block     -->
+    <!-- ============================== -->
+    {% block content %}{% endblock %}
+
+</body>
+</html>

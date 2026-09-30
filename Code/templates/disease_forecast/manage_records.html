@@ -1,0 +1,312 @@
+{# ============================================================
+   manage_records.html
+   Extends: disease_forecast/base_disease.html
+
+   Purpose:
+     Admin-only view for managing disease records within the
+     MedCheck Disease Forecasting module. Provides two side-by-
+     side panels:
+       Panel 1 – Add a brand-new disease entry.
+       Panel 2 – Record a new case for an already-existing
+                 disease (disease code drives an auto-fill of
+                 the name field via AJAX — see TODO below).
+
+   Access:  Admin users only. Guard this route server-side
+            with Flask-Login or a custom decorator.
+   ============================================================ #}
+
+{% extends "disease_forecast/base_disease.html" %}
+
+{% block title %}MedCheck - Manage Disease Records{% endblock %}
+
+{% block page_content %}
+
+  {# ── Page Header ───────────────────────────────────────── #}
+  <h1 class="page-title">Manage Disease Records</h1>
+  <p class="page-subtitle">
+    Add new diseases or record new cases for existing diseases.
+    <strong>(Admin Only)</strong>
+  </p>
+
+  {# ── Two-Panel Layout ──────────────────────────────────────
+       Both panels sit side-by-side on wide screens and stack
+       vertically on narrow screens via the "manage-panels"
+       CSS class (flex/grid controlled in the stylesheet).
+  ─────────────────────────────────────────────────────────── #}
+  <div class="manage-panels">
+
+    {# ════════════════════════════════════════════════════════
+       PANEL 1 — Add New Disease
+       POST → disease.add_disease_record
+    ════════════════════════════════════════════════════════ #}
+    <div class="manage-panel">
+
+      {# Panel heading #}
+      <div class="panel-header">
+        <i class="fas fa-plus-circle panel-icon" aria-hidden="true"></i>
+        <h2 class="panel-title">Add New Disease</h2>
+      </div>
+
+      {# ── Form: Add Disease ───────────────────────────────── #}
+      <form method="POST"
+            action="{{ url_for('disease.add_disease_record') }}"
+            class="panel-form"
+            novalidate>
+
+        {# CSRF token — uncomment when Flask-WTF is wired up #}
+        {# {{ form.hidden_tag() }} #}
+
+        {# ── Disease Code ─────────────────────────────────── #}
+        <div class="form-row">
+          <label class="form-label" for="add_disease_code">
+            Disease Code
+          </label>
+          <input type="text"
+                 id="add_disease_code"
+                 name="disease_code"
+                 class="form-input"
+                 placeholder="e.g. ICD-001"
+                 maxlength="20"
+                 required
+                 >
+          
+        </div>
+
+        {# ── Name of Disease ──────────────────────────────── #}
+        <div class="form-row">
+          <label class="form-label" for="add_disease_name">
+            Name of Disease
+          </label>
+          <input type="text"
+                 id="add_disease_name"
+                 name="disease_name"
+                 class="form-input"
+                 placeholder="e.g. Dengue Fever"
+                 required>
+        </div>
+
+        {# ── Age Group ────────────────────────────────────── #}
+        <div class="form-row">
+          <label class="form-label" for="add_age_group">
+            Age Group
+          </label>
+          <select id="add_age_group"
+                  name="age_group"
+                  class="form-select"
+                  required>
+            <option value="all">All Ages</option>
+            <option value="0-4">0-4 years</option>
+            <option value="5-9">5-9 years</option>
+            <option value="10-14">10-14 years</option>
+            <option value="15-19">15-19 years</option>
+            <option value="20-29">20-29 years</option>
+            <option value="30-39">30-39 years</option>
+            <option value="40-49">40-49 years</option>
+            <option value="50-59">50-59 years</option>
+            <option value="60+">60+ years</option>
+          </select>
+        </div>
+
+        {# ── Number of Cases ──────────────────────────────── #}
+        <div class="form-row">
+          <label class="form-label" for="add_num_cases">
+            Number of Cases
+          </label>
+          <input type="number"
+                 id="add_num_cases"
+                 name="num_cases"
+                 class="form-input"
+                 min="0"
+                 placeholder="0"
+                 required>
+        </div>
+
+        {# ── Submit ───────────────────────────────────────── #}
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-plus" aria-hidden="true"></i>
+            Add Disease
+          </button>
+        </div>
+
+      </form>{# /Add Disease form #}
+
+    </div>{# /Panel 1 #}
+
+    {# ════════════════════════════════════════════════════════
+       PANEL 2 — Record New Case (Existing Disease)
+       POST → disease.add_case_record
+    ════════════════════════════════════════════════════════ #}
+    <div class="manage-panel">
+
+      {# Panel heading #}
+      <div class="panel-header">
+        <i class="fas fa-notes-medical panel-icon" aria-hidden="true"></i>
+        <h2 class="panel-title">Record New Case (Existing Disease)</h2>
+      </div>
+
+      {# ── Form: Record Case ───────────────────────────────── #}
+      <form method="POST"
+            action="{{ url_for('disease.add_case_record') }}"
+            class="panel-form"
+            id="recordCaseForm"
+            novalidate>
+
+        {# CSRF token — uncomment when Flask-WTF is wired up #}
+        {# {{ form.hidden_tag() }} #}
+
+        {# ── Disease Code (select from existing DB records) ── #}
+        <div class="form-row">
+          <label class="form-label" for="rec_disease_code">
+            Disease Code
+          </label>
+          <select id="rec_disease_code"
+                  name="disease_code"
+                  class="form-select"
+                  required
+                  onchange="autoFillDiseaseName(this.value)">
+
+            {# Placeholder / empty choice #}
+            <option value="" disabled selected>
+              -- Select Disease Code --
+            </option>
+
+            {# TODO: Populate <option> tags from the DB via
+                     Jinja2 loop once the view passes the list:
+
+              {% for disease in diseases %}
+                <option value="{{ disease.code }}">
+                  {{ disease.code }} — {{ disease.name }}
+                </option>
+              {% endfor %}
+            #}
+
+          </select>
+        </div>
+
+        {# ── Name of Disease (auto-filled via JS/AJAX) ─────── #}
+        <div class="form-row">
+          <label class="form-label" for="rec_disease_name">
+            Name of Disease
+          </label>
+          <input type="text"
+                 id="rec_disease_name"
+                 name="disease_name"
+                 class="form-input"
+                 placeholder="Auto-filled from code"
+                 readonly
+                 >
+          
+        </div>
+
+        {# ── Age Group ────────────────────────────────────── #}
+        <div class="form-row">
+          <label class="form-label" for="rec_age_group">
+            Age Group
+          </label>
+          <select id="rec_age_group"
+                  name="age_group"
+                  class="form-select"
+                  required>
+            <option value="all">All Ages</option>
+            <option value="0-4">0-4 years</option>
+            <option value="5-9">5-9 years</option>
+            <option value="10-14">10-14 years</option>
+            <option value="15-19">15-19 years</option>
+            <option value="20-29">20-29 years</option>
+            <option value="30-39">30-39 years</option>
+            <option value="40-49">40-49 years</option>
+            <option value="50-59">50-59 years</option>
+            <option value="60+">60+ years</option>
+          </select>
+        </div>
+
+        {# ── Number of Cases ──────────────────────────────── #}
+        <div class="form-row">
+          <label class="form-label" for="rec_num_cases">
+            Number of Cases
+          </label>
+          <input type="number"
+                 id="rec_num_cases"
+                 name="num_cases"
+                 class="form-input"
+                 min="0"
+                 placeholder="0"
+                 required>
+        </div>
+
+        {# ── Submit ───────────────────────────────────────── #}
+        <div class="form-actions">
+          <button type="submit" class="btn btn-success">
+            <i class="fas fa-save" aria-hidden="true"></i>
+            Record Case
+          </button>
+        </div>
+
+      </form>{# /Record Case form #}
+
+    </div>{# /Panel 2 #}
+
+  </div>{# /manage-panels #}
+
+{% endblock page_content %}
+
+
+{# ── Inline JavaScript ─────────────────────────────────────────
+   autoFillDiseaseName:
+     Called when the disease code <select> changes.
+     Fetches the matching disease name from the backend and
+     populates the readonly name field.
+
+     IMPLEMENTATION NOTE:
+       The fetch URL below is a placeholder. Wire it up to a
+       Flask JSON endpoint that accepts ?code=<value> and
+       returns { "name": "<disease name>" }.
+─────────────────────────────────────────────────────────────── #}
+{% block extra_scripts %}
+{{ super() }}
+<script>
+  /**
+   * autoFillDiseaseName
+   * -------------------
+   * Populates the readonly "Name of Disease" input in Panel 2
+   * based on the selected disease code.
+   *
+   * @param {string} code - The disease code chosen by the user.
+   *
+   * TODO: Auto-fill disease name when code is selected (requires AJAX/fetch to backend)
+   *       Replace the fetch URL with the real Flask endpoint, e.g.:
+   *         /disease/api/get-disease-name?code=<code>
+   *       The endpoint should return JSON: { "name": "Disease Name" }
+   */
+  function autoFillDiseaseName(code) {
+    var nameInput = document.getElementById('rec_disease_name');
+
+    if (!code) {
+      nameInput.value = '';
+      return;
+    }
+
+    // TODO: Uncomment and configure once the backend endpoint exists.
+    /*
+    fetch('/disease/api/get-disease-name?code=' + encodeURIComponent(code))
+      .then(function (response) {
+        if (!response.ok) throw new Error('Network response was not ok.');
+        return response.json();
+      })
+      .then(function (data) {
+        nameInput.value = data.name || '';
+      })
+      .catch(function (error) {
+        console.error('Failed to fetch disease name:', error);
+        nameInput.value = '';
+      });
+    */
+
+    // Temporary placeholder feedback while AJAX is not yet wired.
+    nameInput.value = '(Name lookup pending backend integration)';
+  }
+</script>
+{% endblock extra_scripts %}
+
+

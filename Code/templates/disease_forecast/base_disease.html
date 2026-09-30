@@ -1,0 +1,67 @@
+<!-- ============================================================
+     base_disease.html - Disease Forecast Module Layout
+     ============================================================
+     Sidebar items and access rules:
+       Back to Main    -> /dashboard             [ALL]
+       Dashboard       -> /disease/dashboard     [ALL]
+       Disease Reports -> /disease/reports       [ALL]
+       Manage Records  -> /disease/manage        [ADMIN, SUPERADMIN only]
+     ============================================================ -->
+{% extends "base.html" %}
+
+{% block body_class %}dashboard-page{% endblock %}
+
+{% block content %}
+<div class="page-layout">
+
+    <!-- ============================== -->
+    <!-- SIDEBAR NAVIGATION             -->
+    <!-- ============================== -->
+    <nav class="sidebar">
+
+        <!-- Back to Main Dashboard -->
+        <a href="{{ url_for('main.dashboard') }}" class="sidebar-item">
+            <span class="sidebar-icon"><i class="fas fa-home"></i></span>
+            <span class="sidebar-text">Back to Main</span>
+        </a>
+
+        <!-- Disease Dashboard (all users) -->
+        <a href="{{ url_for('disease.dashboard') }}"
+           class="sidebar-item {% if active_page == 'dashboard' %}active{% endif %}">
+            <span class="sidebar-icon"><i class="fas fa-chart-pie"></i></span>
+            <span class="sidebar-text">Dashboard</span>
+        </a>
+
+        <!-- Disease Reports (all users) -->
+        <a href="{{ url_for('disease.reports') }}"
+           class="sidebar-item {% if active_page == 'reports' %}active{% endif %}">
+            <span class="sidebar-icon"><i class="fas fa-file-medical-alt"></i></span>
+            <span class="sidebar-text">Disease Reports</span>
+        </a>
+
+        <!-- Manage Records — ADMIN and SUPERADMIN only -->
+        {% if session.get('role') in ['ADMIN', 'SUPERADMIN'] %}
+        <a href="{{ url_for('disease.manage_records') }}"
+           class="sidebar-item {% if active_page == 'manage' %}active{% endif %}">
+            <span class="sidebar-icon"><i class="fas fa-notes-medical"></i></span>
+            <span class="sidebar-text">Manage Records</span>
+        </a>
+        {% else %}
+        <!-- Locked for INVENTORY_STAFF — visual cue only -->
+        <div class="sidebar-item-locked" title="Administrator Access Only">
+            <span class="sidebar-icon"><i class="fas fa-lock"></i></span>
+            <span class="sidebar-text">Manage Records</span>
+        </div>
+        {% endif %}
+
+    </nav>
+
+    <!-- ============================== -->
+    <!-- MAIN CONTENT AREA              -->
+    <!-- ============================== -->
+    <main class="content-area">
+        {% block page_content %}{% endblock %}
+    </main>
+
+</div>
+{% endblock %}

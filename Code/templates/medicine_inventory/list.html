@@ -1,0 +1,213 @@
+{% extends "medicine_inventory/base_medicine.html" %}
+
+{# ============================================================
+   list.html — Medicine Inventory: List View
+   Purpose : Display all medicines, their batch info, stock
+             levels and statuses. Supports search & filtering.
+   Extends : medicine_inventory/base_medicine.html
+   Context : medicines  — iterable of medicine objects (backend)
+             total_count — int
+             low_stock_count — int
+             near_expiry_count — int
+   ============================================================ #}
+
+{% block title %}MedCheck - Medicine List{% endblock %}
+
+{% block page_content %}
+
+  {# ── Page Header ─────────────────────────────────────────── #}
+  <h1 class="page-title">Medicine List</h1>
+  <p class="page-subtitle">Complete inventory of all medicines and their stock levels.</p>
+
+  {# ── Search & Filter Bar ──────────────────────────────────── #}
+  {# All inputs submit via GET so filters are bookmarkable/shareable #}
+  <div class="filter-bar">
+    <form method="GET" action="" class="filter-form">
+
+      {# Free-text search across Generic Name and Brand Name #}
+      <div class="filter-group">
+        <input
+          type="text"
+          name="search"
+          class="form-control"
+          placeholder="Search by Generic or Brand Name..."
+          value="{{ request.args.get('search', '') }}"
+          aria-label="Search medicines"
+        >
+      </div>
+
+      {# Batch Number dropdown — options populated by backend #}
+      <div class="filter-group">
+        <select name="batch" class="form-control" aria-label="Filter by Batch Number">
+          <option value="">Filter by Batch No.</option>
+          {# TODO: Loop through unique batch numbers from backend context variable 'batch_options' #}
+          {# {% for batch in batch_options %}
+          <option value="{{ batch }}" {% if request.args.get('batch') == batch %}selected{% endif %}>
+            {{ batch }}
+          </option>
+          {% endfor %} #}
+        </select>
+      </div>
+
+      {# Expiration month filter — type=month renders a month/year picker #}
+      <div class="filter-group filter-group--labeled">
+        <label for="expiryFilter" class="filter-label">Expiry Month</label>
+        <input
+          type="month"
+          id="expiryFilter"
+          name="expiry"
+          class="form-control"
+          value="{{ request.args.get('expiry', '') }}"
+          aria-label="Filter by expiry month"
+        >
+      </div>
+
+      {# Stock Status dropdown #}
+      <div class="filter-group">
+        <select name="status" class="form-control" aria-label="Filter by stock status">
+          <option value="">All Status</option>
+          <option value="in_stock"   {% if request.args.get('status') == 'in_stock'   %}selected{% endif %}>In Stock</option>
+          <option value="low_stock"  {% if request.args.get('status') == 'low_stock'  %}selected{% endif %}>Low Stock</option>
+          <option value="out_of_stock" {% if request.args.get('status') == 'out_of_stock' %}selected{% endif %}>Out of Stock</option>
+        </select>
+      </div>
+
+      {# Submit — applies all active filter values #}
+      <div class="filter-group filter-group--action">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-search"></i> Search / Filter
+        </button>
+      </div>
+
+    </form>
+  </div>{# /filter-bar #}
+
+
+  {# ── Summary Stat Cards ───────────────────────────────────── #}
+  {# Three KPI cards giving a quick overview of inventory health  #}
+  <div class="stock-summary">
+
+    {# Card 1: Total distinct medicines in the system #}
+    <div class="stat-card">
+      <div class="stat-card__icon">
+        <i class="fas fa-pills"></i>
+      </div>
+      <div class="stat-card__body">
+        {# TODO: Replace '--' with {{ total_count }} from backend context #}
+        <span class="stat-card__number">--</span>
+        <span class="stat-card__label">Total Medicines</span>
+      </div>
+    </div>
+
+    {# Card 2: Medicines whose stock is at or below minimum threshold #}
+    <div class="stat-card stat-card--warning">
+      <div class="stat-card__icon stat-card__icon--warning">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <div class="stat-card__body">
+        {# TODO: Replace '--' with {{ low_stock_count }} from backend context #}
+        <span class="stat-card__number">--</span>
+        <span class="stat-card__label">Low Stock Items</span>
+      </div>
+    </div>
+
+    {# Card 3: Medicines near expiry (within threshold) or already expired #}
+    <div class="stat-card stat-card--danger">
+      <div class="stat-card__icon stat-card__icon--danger">
+        <i class="fas fa-clock"></i>
+      </div>
+      <div class="stat-card__body">
+        {# TODO: Replace '--' with {{ near_expiry_count }} from backend context #}
+        <span class="stat-card__number">--</span>
+        <span class="stat-card__label">Near Expiry / Expired</span>
+      </div>
+    </div>
+
+  </div>{# /stock-summary #}
+
+
+  {# ── Medicine Data Table ──────────────────────────────────── #}
+  {#
+     Badge classes (sourced from global stylesheet):
+       .badge.badge-success  → In Stock
+       .badge.badge-warning  → Low Stock
+       .badge.badge-danger   → Out of Stock
+  #}
+  <div class="table-wrapper">
+    <table class="data-table" aria-label="Medicine Inventory Table">
+      <thead>
+        <tr>
+          <th scope="col">Generic Name</th>
+          <th scope="col">Brand Name</th>
+          <th scope="col">Total Stock</th>
+          <th scope="col">Batch No.</th>
+          <th scope="col">Expiration Date</th>
+          <th scope="col">Stock Status</th>
+          <th scope="col">Action</th>
+        </tr>
+      </thead>
+
+      <tbody>
+
+        <!-- TODO: Loop through medicines from backend context variable 'medicines' -->
+        {#
+          Replace the empty-state row below with the loop once the backend is wired:
+
+          {% for med in medicines %}
+          <tr>
+            <td>{{ med.generic_name }}</td>
+            <td>{{ med.brand_name }}</td>
+            <td>{{ med.total_stock }}</td>
+            <td>{{ med.batch_no }}</td>
+            <td>{{ med.expiration_date }}</td>
+            <td>
+              {% if med.stock_status == 'In Stock' %}
+                <span class="badge badge-success">In Stock</span>
+              {% elif med.stock_status == 'Low Stock' %}
+                <span class="badge badge-warning">Low Stock</span>
+              {% else %}
+                <span class="badge badge-danger">Out of Stock</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if session.get('role') in ['INVENTORY_STAFF', 'SUPERADMIN'] %}
+                <button
+                  class="btn-icon btn-edit"
+                  title="Edit {{ med.generic_name }}"
+                  aria-label="Edit {{ med.generic_name }}"
+                >
+                  <i class="fas fa-edit"></i>
+                </button>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        #}
+
+        {# ── Empty State Row ─────────────────────────────────── #}
+        {# Shown when no medicines match the current filter criteria #}
+        {# TODO: Wrap this in {% if not medicines %} ... {% endif %} once backend is connected #}
+        <tr>
+          <td colspan="7" class="empty-state">
+            <i class="fas fa-box-open empty-state__icon"></i>
+            <span>No medicines found. Try adjusting your filters.</span>
+          </td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>{# /table-wrapper #}
+
+
+  {# ── Batch Breakdown Info Note ────────────────────────────── #}
+  {# Clarifies that "Total Stock" is aggregated and per-batch view
+     requires using the Batch No. filter above                    #}
+  <div class="info-note" role="note" aria-label="Batch breakdown note">
+    <i class="fas fa-info-circle info-note__icon"></i>
+    <span>
+      <strong>Note:</strong> Total Stock shows the combined quantity across all batches.
+      Use the <em>Batch No.</em> filter above to view stock per individual batch and expiration date.
+    </span>
+  </div>
+
+{% endblock %}{# /page_content #}

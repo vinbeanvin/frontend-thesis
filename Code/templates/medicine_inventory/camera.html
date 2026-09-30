@@ -1,0 +1,370 @@
+{% extends "medicine_inventory/base_medicine.html" %}
+
+{# ============================================================
+   camera.html — Medicine Inventory: Camera Scanner
+   Purpose : Step-by-step UI for scanning medicine packaging via
+             webcam or uploaded image. Detected medicine data is
+             shown in a read-only confirmation step before the
+             stock update is committed.
+   Extends : medicine_inventory/base_medicine.html
+   Context : No initial server context required — detection data
+             is populated via JS after the /medicine/scan-frame
+             endpoint returns results.
+   ============================================================ #}
+
+{% block title %}MedCheck - Camera Scanner{% endblock %}
+
+{% block page_content %}
+
+  {# ── Page Header ─────────────────────────────────────────── #}
+  <h1 class="page-title">Camera Scanner</h1>
+  <p class="page-subtitle">Scan medicine packaging to automatically identify and update stock.</p>
+
+  {# ── Camera Step Flow ─────────────────────────────────────── #}
+  {# Steps are revealed progressively: Step 1 → Step 2 → Step 3   #}
+  <div class="camera-steps">
+
+
+    {# ════════════════════════════════════════════════════════
+       STEP 1 — Open Camera / Upload Image
+       The user activates the webcam or selects an image file.
+       JS handles getUserMedia() and preview rendering.
+    ════════════════════════════════════════════════════════ #}
+    <div class="camera-box" id="stepOpenCamera" aria-labelledby="step1Label">
+      <div class="step-indicator">
+        <span class="step-badge">1</span>
+        <span id="step1Label" class="step-title">Open Camera</span>
+      </div>
+
+      {# Live camera / uploaded image preview area #}
+      <div class="camera-preview placeholder-section" id="cameraPreview" role="img" aria-label="Camera feed preview">
+        <i class="fas fa-camera placeholder-icon" aria-hidden="true"></i>
+        <p class="placeholder-text">
+          Camera feed will appear here. Click <strong>Open Camera</strong> to begin.
+        </p>
+        {# JS will inject a <video> element here when webcam is active,
+           or an <img> element when an uploaded image is loaded.         #}
+      </div>
+
+      {# Primary action buttons for this step #}
+      <div class="camera-actions">
+        <button
+          type="button"
+          id="openCameraBtn"
+          class="btn btn-primary"
+          aria-controls="cameraPreview"
+        >
+          <i class="fas fa-video"></i> Open Camera
+        </button>
+
+        <button
+          type="button"
+          id="uploadBtn"
+          class="btn btn-secondary"
+          aria-controls="imageUploadInput"
+        >
+          <i class="fas fa-upload"></i> Upload Image Instead
+        </button>
+
+        {# Hidden file picker — triggered programmatically by uploadBtn click #}
+        <input
+          type="file"
+          id="imageUploadInput"
+          accept="image/*"
+          class="hidden-file-input"
+          aria-label="Upload medicine image"
+          style="display: none;"
+        >
+      </div>
+
+    </div>{# /stepOpenCamera #}
+
+
+    {# ════════════════════════════════════════════════════════
+       STEP 2 — Recognition Result
+       Populated by JS after the backend scan endpoint responds.
+       All fields are read-only; staff confirms or rescans.
+    ════════════════════════════════════════════════════════ #}
+    <div class="recognition-result" id="stepRecognitionResult" style="display: none;" aria-labelledby="step2Label">
+      <div class="step-indicator">
+        <span class="step-badge">2</span>
+        <span id="step2Label" class="step-title">Detected Medicine</span>
+      </div>
+
+      {# Read-only detected medicine details — filled by JS #}
+      <div class="detection-fields">
+
+        {# Confidence score badge — JS sets the percentage and adjusts colour class #}
+        <div class="confidence-badge" id="confidenceBadge" aria-live="polite">
+          {# Example states set via JS:
+             <span class="confidence-badge--high">Confidence: 95%</span>
+             <span class="confidence-badge--medium">Confidence: 72%</span>
+             <span class="confidence-badge--low">Confidence: 48%</span> #}
+          <i class="fas fa-chart-bar"></i>
+          <span id="confidenceValue">Confidence: —</span>
+        </div>
+
+        {# Detected Medicine Name #}
+        <div class="form-row">
+          <label for="detectedName" class="form-label">Detected Medicine Name</label>
+          <input
+            type="text"
+            id="detectedName"
+            name="detected_name"
+            class="form-control"
+            readonly
+            placeholder="—"
+            aria-label="Detected medicine name (read-only)"
+          >
+        </div>
+
+        {# Detected Batch Number #}
+        <div class="form-row">
+          <label for="detectedBatch" class="form-label">Detected Batch No.</label>
+          <input
+            type="text"
+            id="detectedBatch"
+            name="detected_batch"
+            class="form-control"
+            readonly
+            placeholder="—"
+            aria-label="Detected batch number (read-only)"
+          >
+        </div>
+
+        {# Detected Expiration Date #}
+        <div class="form-row">
+          <label for="detectedExpiry" class="form-label">Detected Expiration Date</label>
+          <input
+            type="date"
+            id="detectedExpiry"
+            name="detected_expiry"
+            class="form-control"
+            readonly
+            aria-label="Detected expiration date (read-only)"
+          >
+        </div>
+
+      </div>{# /detection-fields #}
+
+      {# Action buttons for Step 2 #}
+      <div class="detection-actions">
+        <button type="button" id="confirmDetectionBtn" class="btn btn-success">
+          <i class="fas fa-check"></i> Confirm Detection
+        </button>
+        <button type="button" id="rescanBtn" class="btn btn-secondary">
+          <i class="fas fa-redo"></i> Rescan
+        </button>
+        <button type="button" id="manualSearchBtn" class="btn btn-secondary">
+          <i class="fas fa-keyboard"></i> Manual Search Instead
+        </button>
+      </div>
+
+    </div>{# /stepRecognitionResult #}
+
+
+    {# ════════════════════════════════════════════════════════
+       STEP 3 — Update Stock
+       Staff confirms quantities and submits the transaction.
+       Revealed by JS after clicking "Confirm Detection".
+    ════════════════════════════════════════════════════════ #}
+    <div class="stock-update" id="stepUpdateStock" style="display: none;" aria-labelledby="step3Label">
+      <div class="step-indicator">
+        <span class="step-badge">3</span>
+        <span id="step3Label" class="step-title">Update Stock</span>
+      </div>
+
+      {# Stock update form — POST handled by the medicine transaction route #}
+      <form
+        method="POST"
+        action="#"
+        class="stock-update-form"
+        id="stockUpdateForm"
+      >
+        {# TODO: Replace action="#" with url_for('medicine.confirm_transaction') once blueprint is registered #}
+
+        {# CSRF token — uncomment when Flask-WTF is integrated #}
+        {# {{ form.hidden_tag() }} #}
+
+        {# ── Transaction Direction ────────────────────────── #}
+        <div class="form-row">
+          <fieldset>
+            <legend class="form-label">Transaction Type</legend>
+            <div class="radio-group">
+
+              <label class="radio-option" for="transactionAdd">
+                <input
+                  type="radio"
+                  id="transactionAdd"
+                  name="transaction_type"
+                  value="add"
+                  checked
+                >
+                <span class="radio-label">
+                  <i class="fas fa-plus-circle text-success"></i> Add Stock
+                </span>
+              </label>
+
+              <label class="radio-option" for="transactionSubtract">
+                <input
+                  type="radio"
+                  id="transactionSubtract"
+                  name="transaction_type"
+                  value="subtract"
+                >
+                <span class="radio-label">
+                  <i class="fas fa-minus-circle text-danger"></i> Subtract Stock
+                </span>
+              </label>
+
+            </div>
+          </fieldset>
+        </div>
+
+        {# ── Quantity ─────────────────────────────────────── #}
+        <div class="form-row">
+          <label for="stockQuantity" class="form-label">
+            Quantity <span class="required" aria-hidden="true">*</span>
+          </label>
+          <input
+            type="number"
+            id="stockQuantity"
+            name="quantity"
+            class="form-control"
+            min="1"
+            placeholder="Enter quantity"
+            required
+            aria-required="true"
+          >
+        </div>
+
+        {# ── Confirm Batch No. ─────────────────────────────── #}
+        {# Pre-filled by JS from Step 2 detected data; staff can correct if needed #}
+        <div class="form-row">
+          <label for="confirmBatch" class="form-label">Confirm Batch No.</label>
+          <input
+            type="text"
+            id="confirmBatch"
+            name="batch_no"
+            class="form-control"
+            placeholder="Batch number"
+          >
+        </div>
+
+        {# ── Confirm Expiration Date ───────────────────────── #}
+        {# Pre-filled by JS from Step 2 detected data; staff can correct if needed #}
+        <div class="form-row">
+          <label for="confirmExpiry" class="form-label">Confirm Expiration Date</label>
+          <input
+            type="date"
+            id="confirmExpiry"
+            name="expiry_date"
+            class="form-control"
+          >
+        </div>
+
+        {# ── Submit ───────────────────────────────────────── #}
+        <div class="form-row form-group--action">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-check-double"></i> Confirm Transaction
+          </button>
+        </div>
+
+      </form>{# /stock-update-form #}
+    </div>{# /stepUpdateStock #}
+
+  </div>{# /camera-steps #}
+
+{% endblock %}{# /page_content #}
+
+
+{# ── Page-Specific JavaScript ─────────────────────────────── #}
+{# Placed in an extra block so base template can append to body #}
+{% block page_scripts %}
+<script>
+  // ==========================================================
+  // camera.html — Client-Side Scanner Logic (Stub)
+  //
+  // TODO: Integrate with YOLO/OCR backend
+  // Step 1: getUserMedia() to open webcam
+  //         - Inject <video> into #cameraPreview
+  //         - Capture frames on interval or button press
+  // Step 2: Send frame to /medicine/scan-frame endpoint
+  //         - POST FormData with the captured image blob
+  //         - Receive JSON: { name, batch_no, expiry_date, confidence }
+  //         - Populate #detectedName, #detectedBatch, #detectedExpiry
+  //         - Set #confidenceValue and apply .confidence-badge--{level} class
+  //         - Reveal #stepRecognitionResult, hide #stepOpenCamera
+  // Step 3: On "Confirm Detection" click, pre-fill #confirmBatch
+  //         and #confirmExpiry from Step 2 values, then reveal
+  //         #stepUpdateStock for the staff to enter quantity.
+  // ==========================================================
+
+  (function () {
+    'use strict';
+
+    /* -- Element References -- */
+    var openCameraBtn    = document.getElementById('openCameraBtn');
+    var uploadBtn        = document.getElementById('uploadBtn');
+    var imageUploadInput = document.getElementById('imageUploadInput');
+    var cameraPreview    = document.getElementById('cameraPreview');
+    var stepResult       = document.getElementById('stepRecognitionResult');
+    var stepStock        = document.getElementById('stepUpdateStock');
+    var confirmDetectBtn = document.getElementById('confirmDetectionBtn');
+    var rescanBtn        = document.getElementById('rescanBtn');
+    var manualSearchBtn  = document.getElementById('manualSearchBtn');
+
+    /* -- Step 1: Open Camera -- */
+    // TODO: Replace stub with real getUserMedia() + video stream
+    openCameraBtn.addEventListener('click', function () {
+      cameraPreview.innerHTML =
+        '<p class="placeholder-text"><i class="fas fa-spinner fa-spin"></i> Initialising camera...</p>';
+      // TODO: navigator.mediaDevices.getUserMedia({ video: true })
+      //       .then(function(stream) { ... })
+      //       .catch(function(err) { console.error(err); });
+    });
+
+    /* -- Step 1: Upload Image -- */
+    uploadBtn.addEventListener('click', function () {
+      imageUploadInput.click();
+    });
+
+    imageUploadInput.addEventListener('change', function () {
+      var file = this.files[0];
+      if (!file) return;
+      // TODO: Send to /medicine/scan-frame and show results in Step 2
+      var objectUrl = URL.createObjectURL(file);
+      cameraPreview.innerHTML =
+        '<img src="' + objectUrl + '" alt="Uploaded medicine image" style="max-width:100%;border-radius:8px;">';
+    });
+
+    /* -- Step 2: Confirm Detection -- */
+    confirmDetectBtn.addEventListener('click', function () {
+      // Copy detected values into Step 3 confirm fields
+      document.getElementById('confirmBatch').value  = document.getElementById('detectedBatch').value;
+      document.getElementById('confirmExpiry').value = document.getElementById('detectedExpiry').value;
+      // Reveal Step 3
+      stepStock.style.display = 'block';
+      stepStock.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    /* -- Step 2: Rescan -- */
+    rescanBtn.addEventListener('click', function () {
+      stepResult.style.display = 'none';
+      stepStock.style.display  = 'none';
+      cameraPreview.innerHTML  =
+        '<i class="fas fa-camera placeholder-icon"></i>' +
+        '<p class="placeholder-text">Camera feed will appear here. ' +
+        'Click <strong>Open Camera</strong> to begin.</p>';
+    });
+
+    /* -- Step 2: Manual Search -- */
+    // TODO: Update href to the correct manage page URL once routes are wired
+    manualSearchBtn.addEventListener('click', function () {
+      window.location.href = '#';
+    });
+
+  })();
+</script>
+{% endblock %}{# /page_scripts #}
+

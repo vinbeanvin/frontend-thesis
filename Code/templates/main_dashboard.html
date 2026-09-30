@@ -1,0 +1,59 @@
+<!-- ============================================================
+     main_dashboard.html - Main Dashboard
+     ============================================================
+     Welcome page with two clickable module cards:
+     1. Disease Forecast (blue) -> Disease Forecasting module
+     2. Medicine Inventory (green) -> Medicine Inventory module
+     
+     Extends base.html with header bar visible.
+     ============================================================ -->
+{% extends "base.html" %}
+
+{% block title %}MedCheck - Dashboard{% endblock %}
+{% block body_class %}dashboard-page{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+
+    <!-- ============================== -->
+    <!-- WELCOME GREETING               -->
+    <!-- ============================== -->
+    <h1 class="welcome-text">Welcome, {{ session.get('username', 'Admin') }}</h1>
+    <p class="welcome-subtext">Select a module below to get started.</p>
+
+    <!-- ============================== -->
+    <!-- MODULE SELECTION CARDS         -->
+    <!-- Two clickable cards leading    -->
+    <!-- to the main modules            -->
+    <!-- ============================== -->
+    <div class="dashboard-cards">
+
+        <!-- Disease Forecast Card (Blue) -->
+        <a href="{{ url_for('disease.dashboard') }}" class="dashboard-card disease">
+            <h2 class="card-title">Disease Forecast</h2>
+            <div class="card-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <p class="card-action">View Predictive Disease Trends</p>
+            <p class="card-description">
+                Analyze historical case data and view forecasts
+                for disease patterns and age-based risks.
+            </p>
+        </a>
+
+        <!-- Medicine Inventory Card (Green) -->
+        <a href="{{ url_for('medicine.list_medicines') }}" class="dashboard-card medicine">
+            <h2 class="card-title">Medicine Inventory</h2>
+            <div class="card-icon">
+                <i class="fas fa-boxes-stacked"></i>
+            </div>
+            <p class="card-action">Manage Medical Supplies</p>
+            <p class="card-description">
+                Monitor current stock levels, track upcoming
+                expiration dates, and add or deduct stocks.
+            </p>
+        </a>
+
+    </div>
+</div>
+{% endblock %}

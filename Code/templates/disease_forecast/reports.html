@@ -1,0 +1,178 @@
+{# ============================================================
+   reports.html
+   Extends: disease_forecast/base_disease.html
+
+   Purpose:
+     Report generation view for the MedCheck Disease Forecasting
+     module. Allows users to select a standard or custom
+     reporting period and preview the generated forecast report.
+
+   Behaviour:
+     - Standard period options are fixed select values.
+     - "Custom Month" option reveals two <input type="text" placeholder="MM/YYYY">
+       fields via a small inline JS snippet.
+     - The report preview area is a placeholder until the
+       Flask view renders actual report data.
+   ============================================================ #}
+
+{% extends "disease_forecast/base_disease.html" %}
+
+{% block title %}MedCheck - Disease Reports{% endblock %}
+
+{% block page_content %}
+
+  {# ── Page Header ───────────────────────────────────────── #}
+  <h1 class="page-title">Disease Reports</h1>
+  <p class="page-subtitle">
+    Generate forecasted disease reports by reporting period.
+  </p>
+
+  {# ── Report Generation Form ────────────────────────────────
+       Method: GET — period selection is passed as a query param
+       so the same URL can be bookmarked/shared.
+  ─────────────────────────────────────────────────────────── #}
+  <form class="report-form" method="GET" action="" novalidate>
+
+    {# ── Period Selector ─────────────────────────────────── #}
+    <div class="form-row">
+      <label class="form-label" for="period">
+        Select Reporting Period
+      </label>
+
+      <select id="period"
+              name="period"
+              class="report-period-select"
+              required
+              onchange="toggleCustomRange(this.value)">
+
+        {# Default / empty choice #}
+        <option value="" disabled selected>-- Select a Month --</option>
+
+        {# ── Standard presets ───────────────────────────── #}
+        <option value="current_month">Current Month</option>
+        <option value="next_month">Next Month</option>
+        <option value="next_3_months">Next 3 Months</option>
+        <option value="next_6_months">Next 6 Months</option>
+
+        {# ── Custom range option ─────────────────────────── #}
+        <option value="custom">Custom Month</option>
+
+      </select>
+    </div>{# /form-group period #}
+
+    {# ── Custom Date Range Inputs ──────────────────────────
+         Hidden by default; revealed when "Custom Month" is
+         selected. JS handler: toggleCustomRange() below.
+    ─────────────────────────────────────────────────────── #}
+    <div id="custom-range-wrapper"
+         class="form-row custom-range-wrapper"
+         style="display: none;"
+         aria-hidden="true">
+
+      <div class="custom-range-inputs">
+
+        {# From month #}
+        <div class="form-row">
+          <label class="form-label" for="from_month">From Month (MM/YYYY)</label>
+          <input type="text" placeholder="MM/YYYY"
+                 id="from_month"
+                 name="from_month"
+                 class="form-input"
+                 aria-label="Start month for custom range">
+        </div>
+
+        {# To month #}
+        <div class="form-row">
+          <label class="form-label" for="to_month">To Month (MM/YYYY)</label>
+          <input type="text" placeholder="MM/YYYY"
+                 id="to_month"
+                 name="to_month"
+                 class="form-input"
+                 aria-label="End month for custom range">
+        </div>
+
+      </div>{# /custom-range-inputs #}
+    </div>{# /custom-range-wrapper #}
+
+    {# ── Submit Button ───────────────────────────────────── #}
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-search" aria-hidden="true"></i>
+        Generate Report
+      </button>
+    </div>
+
+  </form>{# /report-form #}
+
+  {# ── Report Preview Area ───────────────────────────────────
+       Placeholder shown before a period is submitted.
+       The Flask view will replace (or augment) this section
+       with actual rendered report data once a period is chosen.
+  ─────────────────────────────────────────────────────────── #}
+  <div class="report-preview-area placeholder-section">
+
+    <i class="fas fa-file-medical-alt placeholder-icon" aria-hidden="true"></i>
+
+    <p class="placeholder-text">
+      Select a reporting period above and click
+      <strong>Generate Report</strong> to preview the forecast.
+    </p>
+
+    {# TODO: Conditionally render the actual report table/chart
+             here when {{ report_data }} is provided by the view. #}
+
+  </div>{# /report-preview-area #}
+
+{% endblock page_content %}
+
+
+{# ── Inline JavaScript ─────────────────────────────────────────
+   Placed at the bottom of the block so the DOM is already
+   parsed before the script runs.
+
+   toggleCustomRange(value):
+     Shows or hides the custom date-range inputs depending on
+     whether the user picks "custom" from the period selector.
+     Also manages aria-hidden for screen-reader compatibility.
+─────────────────────────────────────────────────────────────── #}
+{% block extra_scripts %}
+{{ super() }}
+<script>
+  /**
+   * toggleCustomRange
+   * -----------------
+   * Shows or hides the #custom-range-wrapper element based on
+   * the selected period value.
+   *
+   * @param {string} value - The current value of the period <select>.
+   */
+  function toggleCustomRange(value) {
+    var wrapper = document.getElementById('custom-range-wrapper');
+
+    if (value === 'custom') {
+      // Reveal the custom date range inputs
+      wrapper.style.display = 'block';
+      wrapper.setAttribute('aria-hidden', 'false');
+    } else {
+      // Hide the custom date range inputs and clear their values
+      wrapper.style.display = 'none';
+      wrapper.setAttribute('aria-hidden', 'true');
+      document.getElementById('from_month').value = '';
+      document.getElementById('to_month').value   = '';
+    }
+  }
+
+  // Restore visibility on page load if the form was submitted
+  // with 'custom' already selected (e.g. browser back navigation).
+  (function () {
+    var periodSelect = document.getElementById('period');
+    if (periodSelect && periodSelect.value === 'custom') {
+      toggleCustomRange('custom');
+    }
+  })();
+</script>
+{% endblock extra_scripts %}
+
+
+
+

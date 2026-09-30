@@ -1,0 +1,358 @@
+{% extends "medicine_inventory/base_medicine.html" %}
+
+{# ============================================================
+   reports.html — Medicine Inventory: Reports
+   Purpose : Let staff generate stock movement and inventory
+             status summaries for a chosen reporting period.
+             Report content is revealed after the form is submitted.
+   Extends : medicine_inventory/base_medicine.html
+   Context : report_data    — report payload from backend (dict)
+             selected_period — 'current_month' | 'prev_month' | 'custom'
+             from_date / to_date — strings (YYYY-MM), only for custom
+   ============================================================ #}
+
+{% block title %}MedCheck - Inventory Reports{% endblock %}
+
+{% block page_content %}
+
+  {# ── Page Header ─────────────────────────────────────────── #}
+  <h1 class="page-title">Inventory Reports</h1>
+  <p class="page-subtitle">Generate stock movement and inventory status summaries.</p>
+
+
+  {# ── Report Period Selection Form ─────────────────────────── #}
+  <form
+    class="report-form"
+    method="GET"
+    action=""
+    id="reportForm"
+    aria-label="Report period selection"
+  >
+
+    <div class="form-row">
+      <label class="form-label">Select Reporting Period</label>
+
+      {# ── Period Option Cards ───────────────────────────────── #}
+      {# Radio inputs styled as selectable cards via CSS           #}
+      <div class="period-options" role="radiogroup" aria-labelledby="periodLabel">
+
+        {# Option 1: Current calendar month #}
+        <label
+          class="period-card {% if request.args.get('period') == 'current_month' %}period-card--active{% endif %}"
+          for="periodCurrentMonth"
+        >
+          <input
+            type="radio"
+            id="periodCurrentMonth"
+            name="period"
+            value="current_month"
+            {% if request.args.get('period') == 'current_month' %}checked{% endif %}
+          >
+          <span class="period-card__icon"><i class="fas fa-calendar-day"></i></span>
+          <span class="period-card__label">Current Month</span>
+        </label>
+
+        {# Option 2: Previous calendar month #}
+        <label
+          class="period-card {% if request.args.get('period') == 'prev_month' %}period-card--active{% endif %}"
+          for="periodPrevMonth"
+        >
+          <input
+            type="radio"
+            id="periodPrevMonth"
+            name="period"
+            value="prev_month"
+            {% if request.args.get('period') == 'prev_month' %}checked{% endif %}
+          >
+          <span class="period-card__icon"><i class="fas fa-calendar-minus"></i></span>
+          <span class="period-card__label">Previous Month</span>
+        </label>
+
+        {# Option 3: Staff-defined date range (reveals extra inputs) #}
+        <label
+          class="period-card {% if request.args.get('period') == 'custom' %}period-card--active{% endif %}"
+          for="periodCustom"
+        >
+          <input
+            type="radio"
+            id="periodCustom"
+            name="period"
+            value="custom"
+            {% if request.args.get('period') == 'custom' %}checked{% endif %}
+          >
+          <span class="period-card__icon"><i class="fas fa-calendar-alt"></i></span>
+          <span class="period-card__label">Custom Date Range</span>
+        </label>
+
+      </div>{# /period-options #}
+    </div>
+
+    {# ── Custom Date Range Inputs ──────────────────────────── #}
+    {# Shown only when "Custom Date Range" is selected (JS handles toggle) #}
+    <div
+      class="custom-range-inputs"
+      id="customRangeInputs"
+      style="{{ '' if request.args.get('period') == 'custom' else 'display: none;' }}"
+      aria-hidden="{{ 'false' if request.args.get('period') == 'custom' else 'true' }}"
+    >
+      <div class="form-row">
+          <label for="fromDate" class="form-label">From</label>
+          <input
+            type="text" placeholder="MM/YYYY"
+            id="fromDate"
+            name="from_date"
+            class="form-control"
+            value="{{ request.args.get('from_date', '') }}"
+            aria-label="Report start month"
+          >
+        </div>
+
+        <div class="form-row">
+          <label for="toDate" class="form-label">To</label>
+          <input
+            type="text" placeholder="MM/YYYY"
+            id="toDate"
+            name="to_date"
+            class="form-control"
+            value="{{ request.args.get('to_date', '') }}"
+            aria-label="Report end month"
+          >
+        </div>
+
+      </div>{# /customRangeInputs #}
+
+    {# ── Generate Button ──────────────────────────────────── #}
+    <div class="form-row form-group--action">
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-chart-bar"></i> Generate Report
+      </button>
+    </div>
+
+  </form>{# /report-form #}
+
+
+  {# ── No-Period Placeholder ────────────────────────────────── #}
+  {# Shown before the user generates any report                   #}
+  {# TODO: Wrap in {% if not request.args.get('period') %} ... {% endif %} #}
+  <div class="placeholder-section" id="noReportPlaceholder">
+    <i class="fas fa-file-alt placeholder-icon" aria-hidden="true"></i>
+    <p class="placeholder-text">Select a reporting period above and click <strong>Generate Report</strong> to view the summary.</p>
+  </div>
+
+
+  {# ── Report Preview Area ───────────────────────────────────── #}
+  {#
+    Hidden by default. Revealed by JS (simulated) after form submit,
+    or by Jinja when the backend has returned report_data.
+    TODO: Add {% if report_data %} ... {% endif %} wrapper once backend
+    is wired so the section renders server-side when data is present.
+  #}
+  <div id="reportContent" style="display: none;" aria-live="polite">
+
+
+    {# ── SECTION 1: Stock Movement Summary ──────────────────── #}
+    <div class="content-section report-card" aria-labelledby="stockMovementHeading">
+      <h2 id="stockMovementHeading" class="section-title">
+        <i class="fas fa-exchange-alt"></i> Stock Movement Summary
+      </h2>
+
+      <div class="table-wrapper">
+        <table class="data-table" aria-label="Stock movement summary table">
+          <thead>
+            <tr>
+              <th scope="col">Medicine Name</th>
+              <th scope="col">Beginning Stock</th>
+              <th scope="col">Stock Added</th>
+              <th scope="col">Stock Subtracted</th>
+              <th scope="col">Ending Stock</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- TODO: Loop through report_data.stock_movement from backend -->
+            {#
+              {% for row in report_data.stock_movement %}
+              <tr>
+                <td>{{ row.medicine_name }}</td>
+                <td>{{ row.beginning_stock }}</td>
+                <td class="text-success">+{{ row.stock_added }}</td>
+                <td class="text-danger">-{{ row.stock_subtracted }}</td>
+                <td>{{ row.ending_stock }}</td>
+              </tr>
+              {% endfor %}
+            #}
+            <tr>
+              <td colspan="5" class="empty-state">
+                No stock movement data for the selected period.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>{# /stock movement section #}
+
+
+    {# ── SECTION 2: Inventory Status Summary ────────────────── #}
+    <div class="content-section report-card" aria-labelledby="inventoryStatusHeading">
+      <h2 id="inventoryStatusHeading" class="section-title">
+        <i class="fas fa-clipboard-list"></i> Inventory Status Summary
+      </h2>
+
+      <div class="status-sub-sections">
+
+        {# Sub-section 2a: Low-Stock Medicines #}
+        <div class="status-subsection">
+          <div class="status-subsection__header">
+            <span class="status-label">Low-Stock Medicines</span>
+            {# TODO: Replace '0' with {{ report_data.low_stock_count }} #}
+            <span class="badge badge-warning" aria-label="Low stock count">0</span>
+          </div>
+          <div class="status-subsection__body">
+            <!-- TODO: List low-stock medicines from report_data.low_stock_medicines -->
+            <p class="empty-state">No low-stock medicines in this period.</p>
+          </div>
+        </div>
+
+        {# Sub-section 2b: Near-Expiration Medicines #}
+        <div class="status-subsection">
+          <div class="status-subsection__header">
+            <span class="status-label">Near-Expiration Medicines</span>
+            {# TODO: Replace '0' with {{ report_data.near_expiry_count }} #}
+            <span class="badge badge-warning" aria-label="Near expiration count">0</span>
+          </div>
+          <div class="status-subsection__body">
+            <!-- TODO: List near-expiry medicines from report_data.near_expiry_medicines -->
+            <p class="empty-state">No near-expiration medicines in this period.</p>
+          </div>
+        </div>
+
+        {# Sub-section 2c: Expired Medicines #}
+        <div class="status-subsection">
+          <div class="status-subsection__header">
+            <span class="status-label">Expired Medicines</span>
+            {# TODO: Replace '0' with {{ report_data.expired_count }} #}
+            <span class="badge badge-danger" aria-label="Expired medicine count">0</span>
+          </div>
+          <div class="status-subsection__body">
+            <!-- TODO: List expired medicines from report_data.expired_medicines -->
+            <p class="empty-state">No expired medicines in this period.</p>
+          </div>
+        </div>
+
+      </div>{# /status-sub-sections #}
+    </div>{# /inventory status section #}
+
+
+    {# ── SECTION 3: Export Options ───────────────────────────── #}
+    <div class="content-section report-card report-card--export" aria-labelledby="exportHeading">
+      <h2 id="exportHeading" class="section-title">
+        <i class="fas fa-file-export"></i> Export Options
+      </h2>
+
+      <div class="export-actions">
+
+        {# Generate PDF — triggers server-side PDF generation #}
+        {# TODO: Wire to the appropriate backend route for PDF generation #}
+        <button type="button" class="btn btn-primary" id="generatePdfBtn" aria-label="Generate PDF report">
+          <i class="fas fa-file-pdf"></i> Generate PDF
+        </button>
+
+        {# Download PDF — downloads a pre-generated PDF file #}
+        {# TODO: Wire href to the PDF download endpoint, e.g. url_for('medicine.download_report') #}
+        <a href="#" class="btn btn-secondary" id="downloadPdfBtn" download aria-label="Download PDF report">
+          <i class="fas fa-download"></i> Download PDF
+        </a>
+
+      </div>
+    </div>{# /export options #}
+
+
+  </div>{# /reportContent #}
+
+{% endblock %}{# /page_content #}
+
+
+{# ── Page-Specific JavaScript ─────────────────────────────── #}
+{% block page_scripts %}
+<script>
+  // ==========================================================
+  // reports.html — Client-Side UI Logic
+  //
+  // Responsibilities:
+  //  1. Toggle the custom date range inputs when "Custom Date Range"
+  //     radio card is selected.
+  //  2. Show the #reportContent div when the form is submitted
+  //     (simulated reveal — backend will also control this via
+  //     server-side rendering once wired).
+  // ==========================================================
+
+  (function () {
+    'use strict';
+
+    /* ── Element References ── */
+    const periodRadios      = document.querySelectorAll('input[name="period"]');
+    const customRangeInputs = document.getElementById('customRangeInputs');
+    const reportForm        = document.getElementById('reportForm');
+    const reportContent     = document.getElementById('reportContent');
+    const noReportHolder    = document.getElementById('noReportPlaceholder');
+
+    /* ── Toggle Custom Date Range Inputs ── */
+    function updateCustomRangeVisibility() {
+      const selected = document.querySelector('input[name="period"]:checked');
+      const isCustom = selected && selected.value === 'custom';
+      customRangeInputs.style.display    = isCustom ? 'block' : 'none';
+      customRangeInputs.setAttribute('aria-hidden', isCustom ? 'false' : 'true');
+    }
+
+    periodRadios.forEach(function (radio) {
+      radio.addEventListener('change', updateCustomRangeVisibility);
+    });
+
+    // Also style active period card on change
+    periodRadios.forEach(function (radio) {
+      radio.addEventListener('change', function () {
+        document.querySelectorAll('.period-card').forEach(function (card) {
+          card.classList.remove('period-card--active');
+        });
+        this.closest('.period-card').classList.add('period-card--active');
+      });
+    });
+
+    /* ── Simulated Report Reveal on Form Submit ── */
+    // In production this is handled server-side; this stub provides
+    // instant feedback before the page reloads with real data.
+    reportForm.addEventListener('submit', function (e) {
+      const selected = document.querySelector('input[name="period"]:checked');
+      if (!selected) {
+        e.preventDefault();
+        alert('Please select a reporting period before generating the report.');
+        return;
+      }
+      // Show report content area after a brief simulated delay
+      setTimeout(function () {
+        if (noReportHolder) noReportHolder.style.display = 'none';
+        reportContent.style.display = 'block';
+        reportContent.scrollIntoView({ behavior: 'smooth' });
+      }, 300);
+    });
+
+    /* ── On Page Load: restore state from URL params (server-rendered) ── */
+    // If a period was already selected (page reloaded with GET params),
+    // ensure the report area is visible immediately.
+    (function restoreState() {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('period')) {
+        if (noReportHolder) noReportHolder.style.display = 'none';
+        reportContent.style.display = 'block';
+      }
+      updateCustomRangeVisibility();
+    })();
+
+  })();
+</script>
+{% endblock %}{# /page_scripts #}
+
+
+
+
+

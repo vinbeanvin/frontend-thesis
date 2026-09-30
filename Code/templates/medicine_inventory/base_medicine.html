@@ -1,0 +1,81 @@
+<!-- ============================================================
+     base_medicine.html - Medicine Inventory Module Layout
+     ============================================================
+     Sidebar items and access rules:
+       Back to Main        -> /dashboard              [ALL]
+       Medicine List       -> /medicine/list          [ALL]
+       Manage Medicine     -> /medicine/manage        [STAFF, SUPERADMIN]
+       Camera Scanner      -> /medicine/camera        [STAFF, SUPERADMIN]
+       Inventory Reports   -> /medicine/reports       [ALL]
+     ============================================================ -->
+{% extends "base.html" %}
+
+{% block body_class %}dashboard-page{% endblock %}
+
+{% block content %}
+<div class="page-layout">
+
+    <!-- ============================== -->
+    <!-- SIDEBAR NAVIGATION             -->
+    <!-- ============================== -->
+    <nav class="sidebar">
+
+        <!-- Back to Main Dashboard -->
+        <a href="{{ url_for('main.dashboard') }}" class="sidebar-item">
+            <span class="sidebar-icon"><i class="fas fa-home"></i></span>
+            <span class="sidebar-text">Back to Main</span>
+        </a>
+
+        <!-- Medicine List (all users) -->
+        <a href="{{ url_for('medicine.list_medicines') }}"
+           class="sidebar-item {% if active_page == 'list' %}active{% endif %}">
+            <span class="sidebar-icon"><i class="fas fa-pills"></i></span>
+            <span class="sidebar-text">Medicine List</span>
+        </a>
+
+        <!-- Manage Medicine - STAFF and SUPERADMIN only -->
+        {% if session.get('role') in ['INVENTORY_STAFF', 'SUPERADMIN'] %}
+        <a href="{{ url_for('medicine.manage') }}"
+           class="sidebar-item {% if active_page == 'manage' %}active{% endif %}">
+            <span class="sidebar-icon"><i class="fas fa-edit"></i></span>
+            <span class="sidebar-text">Manage Medicine</span>
+        </a>
+        {% else %}
+        <div class="sidebar-item-locked" title="Inventory Staff Access Only">
+            <span class="sidebar-icon"><i class="fas fa-lock"></i></span>
+            <span class="sidebar-text">Manage Medicine</span>
+        </div>
+        {% endif %}
+
+        <!-- Camera Scanner - STAFF and SUPERADMIN only -->
+        {% if session.get('role') in ['INVENTORY_STAFF', 'SUPERADMIN'] %}
+        <a href="{{ url_for('medicine.camera') }}"
+           class="sidebar-item {% if active_page == 'camera' %}active{% endif %}">
+            <span class="sidebar-icon"><i class="fas fa-camera"></i></span>
+            <span class="sidebar-text">Camera Scanner</span>
+        </a>
+        {% else %}
+        <div class="sidebar-item-locked" title="Inventory Staff Access Only">
+            <span class="sidebar-icon"><i class="fas fa-lock"></i></span>
+            <span class="sidebar-text">Camera Scanner</span>
+        </div>
+        {% endif %}
+
+        <!-- Inventory Reports (all users) -->
+        <a href="{{ url_for('medicine.reports') }}"
+           class="sidebar-item {% if active_page == 'reports' %}active{% endif %}">
+            <span class="sidebar-icon"><i class="fas fa-chart-bar"></i></span>
+            <span class="sidebar-text">Inventory Reports</span>
+        </a>
+
+    </nav>
+
+    <!-- ============================== -->
+    <!-- MAIN CONTENT AREA              -->
+    <!-- ============================== -->
+    <main class="content-area">
+        {% block page_content %}{% endblock %}
+    </main>
+
+</div>
+{% endblock %}

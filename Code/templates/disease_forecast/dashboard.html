@@ -1,0 +1,112 @@
+{# ============================================================
+   dashboard.html
+   Extends: disease_forecast/base_disease.html
+
+   Purpose:
+     Main dashboard view for the MedCheck Disease Forecasting
+     module. Displays three summary sections:
+       1. Forecasted Disease Trends  (Chart.js placeholder)
+       2. Age-Group Disease Analysis
+       3. Forecasted Disease Cases
+
+   Data is expected to be injected by the Flask view later.
+   Chart.js integration will be wired up once the backend
+   endpoints are ready.
+   ============================================================ #}
+
+{% extends "disease_forecast/base_disease.html" %}
+
+{% block title %}MedCheck - Disease Dashboard{% endblock %}
+
+{% block page_content %}
+
+  {# ── Page Header ───────────────────────────────────────── #}
+  <h1 class="page-title">Disease Dashboard</h1>
+  <p class="page-subtitle">
+    Overview of forecasted disease trends and case analytics.
+  </p>
+
+  {# ── Dashboard Grid ────────────────────────────────────────
+       Layout: 3 columns on wide screens, 1 column on mobile.
+       Controlled via CSS class "dashboard-grid".
+       Each card is a "dashboard-section" div.
+  ─────────────────────────────────────────────────────────── #}
+  <div class="dashboard-grid">
+
+    {# ── Section 1: Forecasted Disease Trends ──────────────── #}
+    <div class="dashboard-section">
+
+      {# Section header: icon + title #}
+      <div class="section-header">
+        <i class="fas fa-chart-line" style="color: #2a5282;" aria-hidden="true"></i>
+        <span>Forecasted Disease Trends</span>
+      </div>
+
+      {# Section body: Chart.js will be mounted inside .chart-mount
+         once the backend data endpoints are connected.           #}
+      <div class="section-body">
+        <div class="placeholder-mini">
+          <i class="fas fa-chart-line placeholder-mini-icon" aria-hidden="true"></i>
+          <p class="placeholder-mini-text">
+            Bar/Line charts showing forecasted disease trends will be
+            displayed here. (Chart.js will be integrated.)
+          </p>
+        </div>
+        {# TODO: Replace placeholder with <canvas id="trendChart"></canvas>
+                 and initialise Chart.js once data is available.       #}
+      </div>
+
+    </div>{# /Section 1 #}
+
+    {# ── Section 2: Age-Group Disease Analysis ─────────────── #}
+    <div class="dashboard-section">
+
+      {# Section header: icon + title #}
+      <div class="section-header">
+        <i class="fas fa-users" style="color: #2d6a4f;" aria-hidden="true"></i>
+        <span>Age-Group Disease Analysis</span>
+      </div>
+
+      {# Section body: per-age-group breakdown chart placeholder #}
+      <div class="section-body">
+        <div class="placeholder-mini">
+          <i class="fas fa-users placeholder-mini-icon" aria-hidden="true"></i>
+          <p class="placeholder-mini-text">
+            Breakdown of disease cases per age group will be
+            displayed here.
+          </p>
+        </div>
+        {# TODO: Render grouped bar chart keyed by age-group
+                 categories once backend data is supplied.          #}
+      </div>
+
+    </div>{# /Section 2 #}
+
+    {# ── Section 3: Forecasted Disease Cases ───────────────── #}
+    <div class="dashboard-section">
+
+      {# Section header: icon + title #}
+      <div class="section-header">
+        <i class="fas fa-calendar-check" style="color: #2a5282;" aria-hidden="true"></i>
+        <span>Forecasted Disease Cases</span>
+      </div>
+
+      {# Section body: predicted case counts for the upcoming period #}
+      <div class="section-body">
+        <div class="placeholder-mini">
+          <i class="fas fa-calendar-check placeholder-mini-icon" aria-hidden="true"></i>
+          <p class="placeholder-mini-text">
+            Predicted number of cases per disease for the upcoming
+            period.
+          </p>
+        </div>
+        {# TODO: Render a summary table/card list from forecast
+                 model output once the backend view passes the data. #}
+      </div>
+
+    </div>{# /Section 3 #}
+
+  </div>{# /dashboard-grid #}
+
+{% endblock page_content %}
+
