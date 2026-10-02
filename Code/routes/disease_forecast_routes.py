@@ -7,8 +7,7 @@ Access Control:
     /disease/dashboard   - All logged-in users (view)
     /disease/reports     - All logged-in users (view/export)
     /disease/manage      - ADMIN and SUPERADMIN only
-    /disease/add-disease - ADMIN and SUPERADMIN only (POST)
-    /disease/add-case    - ADMIN and SUPERADMIN only (POST)
+    /disease/add-record  - ADMIN and SUPERADMIN only (POST)
 """
 
 from flask import Blueprint, render_template, redirect, url_for, flash, request
@@ -27,7 +26,7 @@ disease_bp = Blueprint('disease', __name__, url_prefix='/disease')
 def dashboard():
     """
     Disease Forecasting Dashboard.
-    Shows: Forecasted Disease Trends, Age-Group Analysis, Forecasted Disease Cases.
+    Shows: Forecasted Disease Trends, Forecasted Disease Cases.
 
     TODO: Pass chart data from ML model to template context.
     """
@@ -75,12 +74,12 @@ def reports():
 def manage_records():
     """
     Manage Disease Records landing page.
-    Shows forms to add a new disease or record a new case.
+    Shows the combined form to add a new disease or record a new case.
 
-    TODO: Pass existing disease list to template for the "Record New Case" dropdown.
+    TODO: Pass existing disease list to template for the DataList dropdown.
     """
     # Future: diseases = Disease.query.all()
-    diseases = []  # Placeholder — will come from DB
+    diseases = []  # Placeholder - will come from DB
     return render_template(
         'disease_forecast/manage_records.html',
         active_page='manage',
@@ -89,75 +88,55 @@ def manage_records():
 
 
 # ============================================================
-# ADD NEW DISEASE (POST)
-# Route: POST /disease/add-disease
+# ADD DISEASE / CASE RECORD (POST)
+# Route: POST /disease/add-record
 # Access: ADMIN, SUPERADMIN only
 # ============================================================
-@disease_bp.route('/add-disease', methods=['POST'])
+@disease_bp.route('/add-record', methods=['POST'])
 @admin_required
-def add_disease_record():
+def add_record():
     """
-    Process the 'Add New Disease' form submission.
+    Process the combined 'Add Disease / Record Case' form submission.
 
     Expects form fields:
-        disease_code  - ICD-style code (e.g. ICD-001)
-        disease_name  - Full name of the disease
-        age_group     - Target age group string
-        num_cases     - Initial number of cases (integer)
+        disease_name      - Full name of the disease (Typed or Selected)
+        record_month_year - Month and Year for the record (e.g. YYYY-MM)
+        age_group[]       - Array of target age group strings
+        num_cases[]       - Array of initial number of cases (integers)
 
-    TODO: Validate inputs with Flask-WTF, save to Disease table via SQLAlchemy.
+    TODO: 
+    1. Check if disease_name exists in Disease table. If not, create it.
+    2. Save records to DiseaseCase table via SQLAlchemy.
     """
-    disease_code  = request.form.get('disease_code', '').strip()
-    disease_name  = request.form.get('disease_name', '').strip()
-    age_group     = request.form.get('age_group', '').strip()
-    num_cases     = request.form.get('num_cases', 0)
+    disease_name      = request.form.get('disease_name', '').strip()
+    record_month_year = request.form.get('record_month_year', '').strip()
+    age_groups        = request.form.getlist('age_group[]')
+    num_cases         = request.form.getlist('num_cases[]')
 
     # --- Basic validation ---
-    if not disease_code or not disease_name:
-        flash('Disease Code and Name are required.', 'error')
+    if not disease_name:
+        flash('Disease Name is required.', 'error')
+        return redirect(url_for('disease.manage_records'))
+        
+    if not record_month_year:
+        flash('Month and Year are required.', 'error')
+        return redirect(url_for('disease.manage_records'))
+
+    if not age_groups or not num_cases:
+        flash('At least one age group and case count is required.', 'error')
         return redirect(url_for('disease.manage_records'))
 
     # TODO: Save to database
-    # new_disease = Disease(code=disease_code, name=disease_name, age_group=age_group, cases=num_cases)
-    # db.session.add(new_disease)
+    # disease = Disease.query.filter_by(name=disease_name).first()
+    # if not disease:
+    #     disease = Disease(name=disease_name)
+    #     db.session.add(disease)
+    #     db.session.commit()
+    # 
+    # for age, cases in zip(age_groups, num_cases):
+    #     case_record = DiseaseCase(disease_id=disease.id, age_group=age, num_cases=cases, record_date=record_month_year)
+    #     db.session.add(case_record)
     # db.session.commit()
 
-    flash(f'Disease "{disease_name}" added successfully.', 'success')
-    return redirect(url_for('disease.manage_records'))
-
-
-# ============================================================
-# ADD NEW CASE TO EXISTING DISEASE (POST)
-# Route: POST /disease/add-case
-# Access: ADMIN, SUPERADMIN only
-# ============================================================
-@disease_bp.route('/add-case', methods=['POST'])
-@admin_required
-def add_case_record():
-    """
-    Process the 'Record New Case' form submission.
-
-    Expects form fields:
-        disease_code  - Selected from existing disease list
-        disease_name  - Auto-filled (read-only), confirmed here server-side
-        age_group     - Age group affected
-        num_cases     - Number of new cases to record
-
-    TODO: Look up the disease by code, append a new DiseaseCase record.
-    """
-    disease_code  = request.form.get('disease_code', '').strip()
-    age_group     = request.form.get('age_group', '').strip()
-    num_cases     = request.form.get('num_cases', 0)
-
-    if not disease_code:
-        flash('Please select a Disease Code.', 'error')
-        return redirect(url_for('disease.manage_records'))
-
-    # TODO: Validate disease_code exists, save new case record
-    # disease = Disease.query.filter_by(code=disease_code).first_or_404()
-    # new_case = DiseaseCase(disease_id=disease.id, age_group=age_group, num_cases=num_cases)
-    # db.session.add(new_case)
-    # db.session.commit()
-
-    flash(f'Case recorded successfully for disease code "{disease_code}".', 'success')
+    flash(f'Record for "{disease_name}" ({record_month_year}) saved successfully.', 'success')
     return redirect(url_for('disease.manage_records'))

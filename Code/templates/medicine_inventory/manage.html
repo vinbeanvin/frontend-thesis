@@ -3,78 +3,54 @@
 {% block title %}MedCheck - Manage Medicine{% endblock %}
 
 {% block page_content %}
-<div class="page-header">
-  <h1 class="page-title">Manage Medicine</h1>
-  <p class="page-subtitle">Add new medicines to the inventory or edit existing ones.</p>
-</div>
+  <div class="page-header">
+    <h1 class="page-title">Manage Medicine</h1>
+    <p class="page-subtitle">Add new medicines to the inventory or edit existing ones.</p>
+  </div>
 
-<div class="manage-panels">
-
-  <section class="manage-panel">
-    <div class="manage-panel__header">
-      <h2 class="panel-title"><i class="fas fa-plus"></i> Add New Medicine</h2>
-    </div>
-    <div class="info-note" style="margin-bottom: 20px;">
-      <i class="fas fa-info-circle"></i> Use this form only if the medicine does not yet exist in the system.
-    </div>
-
-    <form method="POST" action="{{ url_for('medicine.add_medicine') }}">
-      <div class="form-row">
-        <label for="genericName" class="form-label">Generic Name</label>
-        <input type="text" id="genericName" name="generic_name" class="form-control" required>
+  <div class="manage-panels">
+    {# PANEL 1: Add New Medicine #}
+    <div class="manage-panel">
+      <div class="panel-header">
+        <i class="fas fa-plus panel-icon"></i>
+        <h2 class="panel-title">Add New Medicine</h2>
       </div>
-      
-      <div class="form-row">
-        <label for="brandName" class="form-label">Brand Name</label>
-        <input type="text" id="brandName" name="brand_name" class="form-control" required>
+      <div class="info-note" style="margin-bottom: 20px; background: #e0f2fe; color: #0369a1; padding: 12px; border-radius: 6px; display: flex; gap: 8px;">
+        <i class="fas fa-info-circle info-note__icon" style="margin-top: 3px;"></i>
+        <span>Use this form only if the medicine does not yet exist in the system.</span>
       </div>
-      
-      <div class="form-row">
-        <label for="minThreshold" class="form-label">Minimum Stock Threshold</label>
-        <input type="number" id="minThreshold" name="min_threshold" class="form-control" min="0" placeholder="e.g. 50">
-      </div>
-
-      <div class="form-row">
-        <label for="unitOfMeasure" class="form-label">Unit of Measure</label>
-        <select id="unitOfMeasure" name="unit" class="form-control" required>
-          <option value="" disabled selected>Select a unit</option>
-          <option value="tablets">Tablets</option>
-          <option value="capsules">Capsules</option>
-          <option value="bottles">Bottles</option>
-          <option value="vials">Vials</option>
-          <option value="sachets">Sachets</option>
-          <option value="ampules">Ampules</option>
-          <option value="boxes">Boxes</option>
-        </select>
-      </div>
-
-      <div class="form-row form-group--action">
-        <button type="submit" class="btn btn-primary">
-          <i class="fas fa-save"></i> Add Medicine
-        </button>
-      </div>
-    </form>
-  </section>
-
-  <section class="manage-panel">
-    <div class="manage-panel__header">
-      <h2 class="panel-title"><i class="fas fa-search"></i> Search &amp; Edit Existing Medicine</h2>
+      <form method="POST" action="{{ url_for('medicine.add_medicine') }}" class="panel-form">
+        <div class="form-row">
+          <label class="form-label" style="font-weight: 600; margin-bottom: 4px; display: block;">Medicine Name</label>
+          <small style="color: #64748b; font-size: 0.85em; display: block; margin-bottom: 8px;">Format: Generic Name + Dosage (Example: Ascorbic Acid 500 mg Tablet)</small>
+          <input type="text" name="medicine_name" class="form-input" placeholder="e.g., Ascorbic Acid 500 mg Tablet" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;" required>
+        </div>
+        <div class="form-actions" style="margin-top: 24px;">
+          <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; border: none; border-radius: 6px; background-color: #2a5282; color: white; cursor: pointer; font-weight: 600;">
+            <i class="fas fa-plus"></i> Add Medicine
+          </button>
+        </div>
+      </form>
     </div>
 
-    <form method="GET" action="" class="medicine-search-form">
-      <div class="search-inline-group">
-        <input type="text" name="search_medicine" class="form-control" placeholder="Type generic or brand name..." value="{{ request.args.get('search_medicine', '') }}">
-        <button type="submit" class="btn btn-secondary">
-          <i class="fas fa-search"></i> Search
-        </button>
+    {# PANEL 2: Search & Edit #}
+    <div class="manage-panel">
+      <div class="panel-header">
+        <i class="fas fa-search panel-icon"></i>
+        <h2 class="panel-title">Search & Edit Existing Medicine</h2>
       </div>
-    </form>
-
-    <div class="search-results-area placeholder-section" id="searchResultsArea">
-      <i class="fas fa-search placeholder-icon" aria-hidden="true"></i>
-      <p class="placeholder-text">Search above to find and edit an existing medicine.</p>
+      <form method="GET" action="" class="panel-form" style="margin-bottom: 20px;">
+        <div style="display: flex; gap: 10px;">
+          <input type="text" name="search_medicine" class="form-input" placeholder="Type medicine name..." style="flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+          <button type="submit" class="btn btn-secondary" style="padding: 10px 16px; border: 1px solid #cbd5e1; border-radius: 6px; background-color: #f8fafc; cursor: pointer;">
+            <i class="fas fa-search"></i> Search
+          </button>
+        </div>
+      </form>
+      <div class="placeholder-section" style="padding: 40px 20px; text-align: center; border: 2px dashed #cbd5e1; border-radius: 8px; color: #64748b;">
+        <i class="fas fa-search placeholder-icon" style="font-size: 2rem; margin-bottom: 12px;"></i>
+        <p>Search above to find and edit an existing medicine.</p>
+      </div>
     </div>
-  </section>
-
-</div>
-{% endblock %}
+  </div>
+{% endblock page_content %}

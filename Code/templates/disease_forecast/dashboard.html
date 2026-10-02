@@ -1,112 +1,121 @@
-{# ============================================================
-   dashboard.html
-   Extends: disease_forecast/base_disease.html
-
-   Purpose:
-     Main dashboard view for the MedCheck Disease Forecasting
-     module. Displays three summary sections:
-       1. Forecasted Disease Trends  (Chart.js placeholder)
-       2. Age-Group Disease Analysis
-       3. Forecasted Disease Cases
-
-   Data is expected to be injected by the Flask view later.
-   Chart.js integration will be wired up once the backend
-   endpoints are ready.
-   ============================================================ #}
-
 {% extends "disease_forecast/base_disease.html" %}
 
 {% block title %}MedCheck - Disease Dashboard{% endblock %}
 
 {% block page_content %}
+  {# ── Page Header ── #}
+  <div class="page-header">
+    <h1 class="page-title">Disease Dashboard</h1>
+    <p class="page-subtitle">Overview of forecasted disease trends and projected cases.</p>
+  </div>
 
-  {# ── Page Header ───────────────────────────────────────── #}
-  <h1 class="page-title">Disease Dashboard</h1>
-  <p class="page-subtitle">
-    Overview of forecasted disease trends and case analytics.
-  </p>
+  <div class="dashboard-grid" style="display: flex; flex-direction: column; gap: 24px;">
 
-  {# ── Dashboard Grid ────────────────────────────────────────
-       Layout: 3 columns on wide screens, 1 column on mobile.
-       Controlled via CSS class "dashboard-grid".
-       Each card is a "dashboard-section" div.
-  ─────────────────────────────────────────────────────────── #}
-  <div class="dashboard-grid">
-
-    {# ── Section 1: Forecasted Disease Trends ──────────────── #}
+    {# ── Section 1: Forecasted Disease Trends ─────────────── #}
     <div class="dashboard-section">
-
-      {# Section header: icon + title #}
-      <div class="section-header">
-        <i class="fas fa-chart-line" style="color: #2a5282;" aria-hidden="true"></i>
-        <span>Forecasted Disease Trends</span>
-      </div>
-
-      {# Section body: Chart.js will be mounted inside .chart-mount
-         once the backend data endpoints are connected.           #}
-      <div class="section-body">
-        <div class="placeholder-mini">
-          <i class="fas fa-chart-line placeholder-mini-icon" aria-hidden="true"></i>
-          <p class="placeholder-mini-text">
-            Bar/Line charts showing forecasted disease trends will be
-            displayed here. (Chart.js will be integrated.)
-          </p>
+      
+      <div class="section-header" style="justify-content: space-between; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <i class="fas fa-chart-line" style="color: #2a5282;" aria-hidden="true"></i>
+          <span>Forecasted Disease Trends</span>
         </div>
-        {# TODO: Replace placeholder with <canvas id="trendChart"></canvas>
-                 and initialise Chart.js once data is available.       #}
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label for="trendMonthYear" style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">Select Month & Year:</label>
+          <input type="month" id="trendMonthYear" name="trend_month_year" class="form-control" style="width: auto; padding: 4px 10px; font-size: 0.85rem;" title="Select Forecasted Month">
+        </div>
+      </div>
+      
+      <div class="section-body">
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Disease Name</th>
+                <th>Number of Cases</th>
+                <th>Most Vulnerable Age Group</th>
+              </tr>
+            </thead>
+            <tbody>
+              {# Data should be fetched from the database #}
+              {% for trend in trends %}
+              <tr>
+                <td>{{ trend.disease_name }}</td>
+                <td>{{ trend.num_cases }}</td>
+                <td>{{ trend.vulnerable_age_group }}</td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="3" class="empty-state">
+                  <i class="fas fa-inbox empty-state__icon"></i>
+                  <span>No forecasted trends available for the selected month and year.</span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
 
     </div>{# /Section 1 #}
 
-    {# ── Section 2: Age-Group Disease Analysis ─────────────── #}
+    {# ── Section 2: Forecasted Disease Cases ───────────────── #}
     <div class="dashboard-section">
-
-      {# Section header: icon + title #}
-      <div class="section-header">
-        <i class="fas fa-users" style="color: #2d6a4f;" aria-hidden="true"></i>
-        <span>Age-Group Disease Analysis</span>
-      </div>
-
-      {# Section body: per-age-group breakdown chart placeholder #}
-      <div class="section-body">
-        <div class="placeholder-mini">
-          <i class="fas fa-users placeholder-mini-icon" aria-hidden="true"></i>
-          <p class="placeholder-mini-text">
-            Breakdown of disease cases per age group will be
-            displayed here.
-          </p>
+      
+      <div class="section-header" style="justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <i class="fas fa-calendar-check" style="color: #2a5282;" aria-hidden="true"></i>
+          <span>Forecasted Disease Cases</span>
         </div>
-        {# TODO: Render grouped bar chart keyed by age-group
-                 categories once backend data is supplied.          #}
+        
+        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <label for="casesMonthYear" style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">Month & Year:</label>
+            <input type="month" id="casesMonthYear" name="cases_month_year" class="form-control" style="width: auto; padding: 4px 10px; font-size: 0.85rem;" title="Select Month">
+          </div>
+          
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <label for="diseaseFilter" style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">Filter Disease:</label>
+            <input list="disease-options" id="diseaseFilter" name="disease_filter" class="form-control" placeholder="Search / Select Disease" style="width: 200px; padding: 4px 10px; font-size: 0.85rem;">
+            <datalist id="disease-options">
+              {# Backend will provide the list of diseases here #}
+              {% for disease in disease_list %}
+              <option value="{{ disease.name }}">
+              {% endfor %}
+            </datalist>
+          </div>
+        </div>
+      </div>
+      
+      <div class="section-body">
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Disease Name</th>
+                <th>Projected Number of Cases</th>
+              </tr>
+            </thead>
+            <tbody>
+              {# Data should be fetched from the database #}
+              {% for case in projected_cases %}
+              <tr>
+                <td>{{ case.disease_name }}</td>
+                <td>{{ case.projected_cases }}</td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="2" class="empty-state">
+                  <i class="fas fa-inbox empty-state__icon"></i>
+                  <span>No projected cases available for the selected criteria.</span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
 
     </div>{# /Section 2 #}
 
-    {# ── Section 3: Forecasted Disease Cases ───────────────── #}
-    <div class="dashboard-section">
-
-      {# Section header: icon + title #}
-      <div class="section-header">
-        <i class="fas fa-calendar-check" style="color: #2a5282;" aria-hidden="true"></i>
-        <span>Forecasted Disease Cases</span>
-      </div>
-
-      {# Section body: predicted case counts for the upcoming period #}
-      <div class="section-body">
-        <div class="placeholder-mini">
-          <i class="fas fa-calendar-check placeholder-mini-icon" aria-hidden="true"></i>
-          <p class="placeholder-mini-text">
-            Predicted number of cases per disease for the upcoming
-            period.
-          </p>
-        </div>
-        {# TODO: Render a summary table/card list from forecast
-                 model output once the backend view passes the data. #}
-      </div>
-
-    </div>{# /Section 3 #}
-
-  </div>{# /dashboard-grid #}
-
+  </div>
 {% endblock page_content %}
-

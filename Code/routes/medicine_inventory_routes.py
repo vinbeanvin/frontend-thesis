@@ -88,16 +88,13 @@ def add_medicine():
     """
     Process the 'Add New Medicine' form.
     """
-    generic_name  = request.form.get('generic_name', '').strip()
-    brand_name    = request.form.get('brand_name', '').strip()
-    min_threshold = request.form.get('min_threshold', 0)
-    unit          = request.form.get('unit', '').strip()
+    medicine_name = request.form.get('medicine_name', '').strip()
 
-    if not generic_name or not brand_name:
-        flash('Generic Name and Brand Name are required.', 'error')
+    if not medicine_name:
+        flash('Medicine Name is required.', 'error')
         return redirect(url_for('medicine.manage'))
 
-    flash(f'Medicine "{generic_name}" added to the inventory.', 'success')
+    flash(f'Medicine "{medicine_name}" added to the inventory.', 'success')
     return redirect(url_for('medicine.manage'))
 
 
